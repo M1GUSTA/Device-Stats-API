@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: device_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: device_data
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d device_data"]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build: .
+    container_name: device_api
+    restart: always
+    depends_on:
+      db: 
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DB_URL}
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+volumes:
+  postgres_data:
